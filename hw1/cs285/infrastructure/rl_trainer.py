@@ -72,8 +72,8 @@ class RL_Trainer(object):
 
         ## TODO initialize all of the TF variables (that were created by agent, etc.)
         ## HINT: use global_variables_initializer
-        TODO
-
+        tf.global_variables_initializer().run()
+        
     def run_training_loop(self, n_iter, collect_policy, eval_policy,
                         initial_expertdata=None, relabel_with_expert=False,
                         start_relabel_with_expert=1, expert_policy=None):
