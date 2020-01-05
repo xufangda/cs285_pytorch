@@ -28,57 +28,43 @@ class MLPPolicy(BasePolicy):
         self.training = training
 
         # build TF graph
-        self.build_model()
+        self.build_graph()
 
         # saver for policy variables that are not related to training
         # self.policy_vars = [v for v in tf.all_variables() if policy_scope in v.name and 'train' not in v.name]
         # self.policy_saver = tf.train.Saver(self.policy_vars, max_to_keep=None)
 
     ##################################
-    
-    # TF1建图，没什么用
-    def build_model(self):
+
+    def build_graph(self):
         # self.define_placeholders()
         self.define_forward_pass()
         self.build_action_sampling()
-        
+        # if self.training:
+        #     with tf.variable_scope('train', reuse=tf.AUTO_REUSE):
+        #         self.define_train_op()
+
     ##################################
 
     # def define_placeholders(self):
     #     raise NotImplementedError
 
-    # # 正式的model调用
     def define_forward_pass(self):
         # TODO implement this build_mlp function in tf_utils
         model= build_mlp(output_size=self.ac_dim, n_layers=self.n_layers, size=self.size)
-        self.model=model
-        
-
-
-    # # 转化为Action数组
-    def build_action_sampling(self):
-        # self.parameters = (mean, logstd)
-        # mean, logstd = self.parameters
-        
         mean=model(self.observations_pl)
         logstd = tf.Variable(tf.zeros(self.ac_dim), name='logstd')
-        self.sample_ac = mean + tf.math.exp(logstd) * tf.random.normal(tf.shape(mean), 0, 1)
+        self.parameters = (mean, logstd)
 
-    def forward_pass(self, observation):
-        return self.model(observation)
-
-    def action_sampling(self,observation):
+    def build_action_sampling(self):
         mean, logstd = self.parameters
-        mean=self.model(observation)
         self.sample_ac = mean + tf.math.exp(logstd) * tf.random.normal(tf.shape(mean), 0, 1)
 
-    # 执行训练操作
     def define_train_op(self):
         raise NotImplementedError
 
     ##################################
 
-    # TF1的checkpoint保存和回复
     def save(self, filepath):
         self.policy_saver.save(self.sess, filepath, write_meta_graph=False)
 
@@ -86,8 +72,6 @@ class MLPPolicy(BasePolicy):
         self.policy_saver.restore(self.sess, filepath)
 
     ##################################
-
-    # 提取
 
     # query this policy with observation(s) to get selected action(s)
     def get_action(self, obs):
@@ -101,9 +85,10 @@ class MLPPolicy(BasePolicy):
         # HINT1: you will need to call self.sess.run
         # HINT2: the tensor we're interested in evaluating is self.sample_ac
         # HINT3: in order to run self.sample_ac, it will need observation fed into the feed_dict
-        self.action_sampling(observation)
 
-        return self.sample_ac
+
+
+        return TODO
 
     # update/train this policy
     def update(self, observations, actions):
@@ -144,10 +129,5 @@ class MLPPolicySL(MLPPolicy):
         assert(self.training, 'Policy must be created with training=True in order to perform training updates...')
         # self.sess.run(self.train_op, feed_dict={self.observations_pl: observations, self.acs_labels_na: actions})
         
-        optim=tf.keras.optimizers.Adam(self.learning_rate)
         # Add TF2 1/4/2020
-        with tf.GradientTape() as tape:
-            predicted_actions = self.model(observations) # Forward pass of the model
-            loss = tf.losses.mean_squared_error(actions, predicted_actions)
-        grads = tape.gradient(loss, self.model.variables)
-        optimizer.apply_gradients(zip(grads, self.model.variables)
+        self.train_op = tf.keras.optimizers.Adam(self.learning_rate).minimize(self.loss, self.loss.Variables)

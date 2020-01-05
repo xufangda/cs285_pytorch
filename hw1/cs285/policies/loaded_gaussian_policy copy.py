@@ -32,7 +32,7 @@ class Loaded_Gaussian_Policy(BasePolicy):
     ##################################
 
     def define_placeholders(self):
-        self.obs_bo = tf.placeholder(tf.float32, [None, None])
+        self.obs_bo = tf.Variables(tf.float32, [None, None])
 
     def define_forward_pass(self):
 
@@ -55,7 +55,7 @@ class Loaded_Gaussian_Policy(BasePolicy):
 
         # Output layer
         W, b = self.read_layer(self.policy_params['out'])
-        self.output_bo = tf.matmul(curr_activations_bd, W) + b
+        self.output_bo = tf.linalg.matmul(curr_activations_bd, W) + b
 
     def read_layer(self, l):
         assert list(l.keys()) == ['AffineLayer']
