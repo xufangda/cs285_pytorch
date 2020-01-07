@@ -37,7 +37,7 @@ class BC_Trainer(object):
         #######################
 
         print('Loading expert policy from...', self.params['expert_policy_file'])
-        self.loaded_expert_policy = Loaded_Gaussian_Policy(self.rl_trainer.sess, self.params['expert_policy_file'])
+        self.loaded_expert_policy = Loaded_Gaussian_Policy(self.params['expert_policy_file'])
         print('Done restoring expert policy...')
 
     def run_training_loop(self):

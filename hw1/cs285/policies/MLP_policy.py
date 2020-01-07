@@ -36,55 +36,40 @@ class MLPPolicy(BasePolicy):
 
     ##################################
     
-    # TF1建图，没什么用
+    # TF1建图，没什么用 2020.1.5
+    # Change to TF2 Build model 2020.1.6 @Fangda
     def build_model(self):
         # self.define_placeholders()
-        self.define_forward_pass()
-        self.build_action_sampling()
-        
-    ##################################
-
-    # def define_placeholders(self):
-    #     raise NotImplementedError
-
-    # # 正式的model调用
-    def define_forward_pass(self):
-        # TODO implement this build_mlp function in tf_utils
         model= build_mlp(output_size=self.ac_dim, n_layers=self.n_layers, size=self.size)
         self.model=model
+        self.once=False
+        self.logstd = tf.Variable(tf.zeros(self.ac_dim), name='logstd')
         
-
-
-    # # 转化为Action数组
-    def build_action_sampling(self):
-        # self.parameters = (mean, logstd)
-        # mean, logstd = self.parameters
-        
-        mean=model(self.observations_pl)
-        logstd = tf.Variable(tf.zeros(self.ac_dim), name='logstd')
-        self.sample_ac = mean + tf.math.exp(logstd) * tf.random.normal(tf.shape(mean), 0, 1)
+    ##################################
 
     def forward_pass(self, observation):
         return self.model(observation)
 
     def action_sampling(self,observation):
-        mean, logstd = self.parameters
+        logstd = self.logstd
+        
         mean=self.model(observation)
+        if not self.once:
+            self.model.summary()
+            self.once=True
         self.sample_ac = mean + tf.math.exp(logstd) * tf.random.normal(tf.shape(mean), 0, 1)
 
-    # 执行训练操作
-    def define_train_op(self):
-        raise NotImplementedError
+    # # 执行训练操作
+    # def define_train_op(self):
+    #     raise NotImplementedError
 
     ##################################
 
     # TF1的checkpoint保存和回复
     def save(self, filepath):
-        self.policy_saver.save(self.sess, filepath, write_meta_graph=False)
-
+        self.model.save_weights(filepath)
     def restore(self, filepath):
-        self.policy_saver.restore(self.sess, filepath)
-
+        self.model.load_weights(filepath)
     ##################################
 
     # 提取
@@ -130,24 +115,24 @@ class MLPPolicySL(MLPPolicy):
     #     if self.training:
     #         self.acs_labels_na = tf.placeholder(shape=[None, self.ac_dim], name="labels", dtype=tf.float32)
 
-    def define_train_op(self):
-        true_actions = self.acs_labels_na
-        predicted_actions = self.sample_ac
+    # def define_train_op(self):
+    #     true_actions = self.acs_labels_na
+    #     predicted_actions = self.sample_ac
 
-        # TODO define the loss that will be used to train this policy
-        # HINT1: remember that we are doing supervised learning
-        # HINT2: use tf.losses.mean_squared_error
-        self.loss = tf.losses.mean_squared_error(true_actions, predicted_actions)
+    #     # TODO define the loss that will be used to train this policy
+    #     # HINT1: remember that we are doing supervised learning
+    #     # HINT2: use tf.losses.mean_squared_error
+    #     self.loss = tf.losses.mean_squared_error(true_actions, predicted_actions)
         
 
     def update(self, observations, actions):
         assert(self.training, 'Policy must be created with training=True in order to perform training updates...')
         # self.sess.run(self.train_op, feed_dict={self.observations_pl: observations, self.acs_labels_na: actions})
         
-        optim=tf.keras.optimizers.Adam(self.learning_rate)
+        optimizer=tf.keras.optimizers.Adam(self.learning_rate)
         # Add TF2 1/4/2020
         with tf.GradientTape() as tape:
             predicted_actions = self.model(observations) # Forward pass of the model
             loss = tf.losses.mean_squared_error(actions, predicted_actions)
         grads = tape.gradient(loss, self.model.variables)
-        optimizer.apply_gradients(zip(grads, self.model.variables)
+        optimizer.apply_gradients(zip(grads, self.model.variables))

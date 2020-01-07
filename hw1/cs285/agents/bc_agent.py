@@ -8,16 +8,15 @@ from cs285.infrastructure.replay_buffer import ReplayBuffer
 from cs285.infrastructure.utils import *
 
 class BCAgent(BaseAgent):
-    def __init__(self, sess, env, agent_params):
+    def __init__(self, env, agent_params):
         super(BCAgent, self).__init__()
 
         # init vars
         self.env = env
-        self.sess = sess
         self.agent_params = agent_params
 
         # actor/policy
-        self.actor = MLPPolicySL(sess,
+        self.actor = MLPPolicySL(
                                self.agent_params['ac_dim'],
                                self.agent_params['ob_dim'],
                                self.agent_params['n_layers'],

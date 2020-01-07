@@ -1,14 +1,13 @@
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from .base_policy import BasePolicy
 import tensorflow_probability as tfp
 import pickle
 
 class Loaded_Gaussian_Policy(BasePolicy):
-    def __init__(self, sess, filename, **kwargs):
+    def __init__(self, filename, **kwargs):
         super().__init__(**kwargs)
 
-        self.sess = sess
 
         with open(filename, 'rb') as f:
             data = pickle.loads(f.read())
@@ -21,20 +20,20 @@ class Loaded_Gaussian_Policy(BasePolicy):
 
         assert set(self.policy_params.keys()) == {'logstdevs_1_Da', 'hidden', 'obsnorm', 'out'}
 
-        self.build_graph()
+        self.build_model()
 
     ##################################
 
-    def build_graph(self):
+    def build_model(self):
         self.define_placeholders()
-        self.define_forward_pass()
+        # self.define_forward_pass()
 
     ##################################
 
     def define_placeholders(self):
-        self.obs_bo = tf.placeholder(tf.float32, [None, None])
+        self.obs_bo = None
 
-    def define_forward_pass(self):
+    def forward_pass(self):
 
         # Build the policy. First, observation normalization.
         assert list(self.policy_params['obsnorm'].keys()) == ['Standardizer']
@@ -42,15 +41,20 @@ class Loaded_Gaussian_Policy(BasePolicy):
         obsnorm_meansq = self.policy_params['obsnorm']['Standardizer']['meansq_1_D']
         obsnorm_stdev = np.sqrt(np.maximum(0, obsnorm_meansq - np.square(obsnorm_mean)))
         print('obs', obsnorm_mean.shape, obsnorm_stdev.shape)
+
         normedobs_bo = (self.obs_bo - obsnorm_mean) / (obsnorm_stdev + 1e-6)
         curr_activations_bd = normedobs_bo
 
         # Hidden layers next
         assert list(self.policy_params['hidden'].keys()) == ['FeedforwardNet']
         layer_params = self.policy_params['hidden']['FeedforwardNet']
+        
         for layer_name in sorted(layer_params.keys()):
             l = layer_params[layer_name]
             W, b = self.read_layer(l)
+
+            # bugfix: convert curr_activations_bd Float64 to Float32
+            curr_activations_bd= np.float32(curr_activations_bd)
             curr_activations_bd = self.apply_nonlin(tf.matmul(curr_activations_bd, W) + b)
 
         # Output layer
@@ -64,7 +68,7 @@ class Loaded_Gaussian_Policy(BasePolicy):
 
     def apply_nonlin(self, x):
         if self.nonlin_type == 'lrelu':
-            return lrelu(x, leak=.01)
+            return tf.nn.leaky_relu(x, alpha=.01)
         elif self.nonlin_type == 'tanh':
             return tf.tanh(x)
         else:
@@ -82,5 +86,12 @@ class Loaded_Gaussian_Policy(BasePolicy):
             observation = obs
         else:
             observation = obs[None, :]
-        return self.sess.run(self.output_bo, feed_dict={self.obs_bo : observation})
+        
+        self.obs_bo=observation
+        self.forward_pass()
+        
+        # return self.sess.run(self.output_bo, feed_dict={self.obs_bo : observation})
+        return self.output_bo
+
+        
 
