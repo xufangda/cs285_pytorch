@@ -29,7 +29,7 @@ class MLPPolicy(BasePolicy):
 
         # build TF graph
         self.build_model()
-
+        self.optimizer=tf.keras.optimizers.Adam(self.learning_rate)
         # saver for policy variables that are not related to training
         # self.policy_vars = [v for v in tf.all_variables() if policy_scope in v.name and 'train' not in v.name]
         # self.policy_saver = tf.train.Saver(self.policy_vars, max_to_keep=None)
@@ -42,7 +42,6 @@ class MLPPolicy(BasePolicy):
         # self.define_placeholders()
         model= build_mlp(output_size=self.ac_dim, n_layers=self.n_layers, size=self.size)
         self.model=model
-        self.once=False
         self.logstd = tf.Variable(tf.zeros(self.ac_dim), name='logstd')
         
     ##################################
@@ -50,15 +49,12 @@ class MLPPolicy(BasePolicy):
     def forward_pass(self, observation):
         return self.model(observation)
 
-    def action_sampling(self,observation):
-        logstd = self.logstd
-        
-        mean=self.model(observation)
-        if not self.once:
-            self.model.summary()
-            self.once=True
-        self.sample_ac = mean + tf.math.exp(logstd) * tf.random.normal(tf.shape(mean), 0, 1)
 
+    @tf.function
+    def action_sampling(self,observation):
+        mean=self.model(observation)
+        self.sample_ac = mean + tf.math.exp(self.logstd) * tf.random.normal(tf.shape(mean), 0, 1)
+        return self.sample_ac
     # # 执行训练操作
     # def define_train_op(self):
     #     raise NotImplementedError
@@ -86,9 +82,9 @@ class MLPPolicy(BasePolicy):
         # HINT1: you will need to call self.sess.run
         # HINT2: the tensor we're interested in evaluating is self.sample_ac
         # HINT3: in order to run self.sample_ac, it will need observation fed into the feed_dict
-        self.action_sampling(observation)
+        sample_ac=self.action_sampling(observation)
 
-        return self.sample_ac
+        return sample_ac
 
     # update/train this policy
     def update(self, observations, actions):
@@ -129,10 +125,16 @@ class MLPPolicySL(MLPPolicy):
         assert(self.training, 'Policy must be created with training=True in order to perform training updates...')
         # self.sess.run(self.train_op, feed_dict={self.observations_pl: observations, self.acs_labels_na: actions})
         
-        optimizer=tf.keras.optimizers.Adam(self.learning_rate)
+        # Bugfix: convergence is to slow with 1000 step, this is a test remedy that works so well.
+        # self.learning_rate=self.learning_rate*0.995
+
+       
         # Add TF2 1/4/2020
         with tf.GradientTape() as tape:
-            predicted_actions = self.model(observations) # Forward pass of the model
-            loss = tf.losses.mean_squared_error(actions, predicted_actions)
-        grads = tape.gradient(loss, self.model.variables)
-        optimizer.apply_gradients(zip(grads, self.model.variables))
+            predicted_actions = self.action_sampling(observations) # Forward pass of the model
+            loss_n = tf.losses.mean_squared_error(actions, predicted_actions)
+            loss=tf.reduce_sum(loss_n)
+            # print("Loss = {}".format(loss))
+        params=[self.logstd]+ self.model.variables
+        grads = tape.gradient(loss, params)
+        self.optimizer.apply_gradients(zip(grads, params))

@@ -68,8 +68,8 @@ class ReplayBuffer(object):
         ## HINT 2: return corresponding data points from each array (i.e., not different indices from each array)
         ## HINT 3: look at the sample_recent_data function below
 
-        indices=np.random.permutation(batch_size) 
-        return self.obs[indices], self.acs[indices], self.rews[indices], self.next_obs[indices], self.terminals[indices]
+        indices=np.random.permutation(self.obs.shape[0]) 
+        return self.obs[indices<batch_size], self.acs[indices<batch_size], self.rews[indices<batch_size], self.next_obs[indices<batch_size], self.terminals[indices<batch_size]
 
     def sample_recent_data(self, batch_size=1):
         return self.obs[-batch_size:], self.acs[-batch_size:], self.rews[-batch_size:], self.next_obs[-batch_size:], self.terminals[-batch_size:]
