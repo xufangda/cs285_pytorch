@@ -6,12 +6,11 @@ from cs285.infrastructure.replay_buffer import ReplayBuffer
 from cs285.infrastructure.utils import *
 
 class PGAgent(BaseAgent):
-    def __init__(self, sess, env, agent_params):
+    def __init__(self, env, agent_params):
         super(PGAgent, self).__init__()
 
         # init vars
         self.env = env 
-        self.sess = sess
         self.agent_params = agent_params
         self.gamma = self.agent_params['gamma']
         self.standardize_advantages = self.agent_params['standardize_advantages']
@@ -23,7 +22,7 @@ class PGAgent(BaseAgent):
             # which indicates similar network structure (layout/inputs/outputs), 
             # but differences in training procedure 
             # between supervised learning and policy gradients
-        self.actor = MLPPolicyPG(sess, 
+        self.actor = MLPPolicyPG( 
                                  self.agent_params['ac_dim'],
                                  self.agent_params['ob_dim'],
                                  self.agent_params['n_layers'],
@@ -70,7 +69,7 @@ class PGAgent(BaseAgent):
         # step 3:
         # TODO: pass the calculated values above into the actor/policy's update, 
         # which will perform the actual PG update step
-        loss = self.actor.update(obs, acs, qvals=TODO, adv_n=TODO)
+        loss = self.actor.update(obs, acs, qvals=q_values, adv_n=advantage_values)
         return loss
 
     def calculate_q_vals(self, rews_list):

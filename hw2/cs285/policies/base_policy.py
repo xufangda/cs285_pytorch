@@ -5,7 +5,7 @@ class BasePolicy(object):
     def __init__(self, **kwargs):
        super(BasePolicy, self).__init__(**kwargs)
 
-    def build_graph(self):
+    def build_model(self):
         raise NotImplementedError
 
     def get_action(self, obs):

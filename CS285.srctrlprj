@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<config>
+    <source_groups>
+        <source_group_9c142ba7-eb58-475c-b1d5-3958135b571d>
+            <name>Python Source Group</name>
+            <python_environment_path>../../miniconda3/envs/cs285</python_environment_path>
+            <source_extensions>
+                <source_extension>.py</source_extension>
+            </source_extensions>
+            <source_paths>
+                <source_path>hw1</source_path>
+            </source_paths>
+            <status>enabled</status>
+            <type>Python Source Group</type>
+        </source_group_9c142ba7-eb58-475c-b1d5-3958135b571d>
+    </source_groups>
+    <version>8</version>
+</config>

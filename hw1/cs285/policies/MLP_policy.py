@@ -123,18 +123,17 @@ class MLPPolicySL(MLPPolicy):
 
     def update(self, observations, actions):
         assert(self.training, 'Policy must be created with training=True in order to perform training updates...')
-        # self.sess.run(self.train_op, feed_dict={self.observations_pl: observations, self.acs_labels_na: actions})
         
-        # Bugfix: convergence is to slow with 1000 step, this is a test remedy that works so well.
+        # Bugfix: convergence is too slow with 1000 step, this is a test remedy that works so well.
         # self.learning_rate=self.learning_rate*0.995
 
-       
         # Add TF2 1/4/2020
         with tf.GradientTape() as tape:
             predicted_actions = self.action_sampling(observations) # Forward pass of the model
-            loss_n = tf.losses.mean_squared_error(actions, predicted_actions)
+            # print(len(actions),len(predicted_actions))
+            loss_n = tf.losses.mean_squared_error(actions[0], predicted_actions[0])
             loss=tf.reduce_sum(loss_n)
-            # print("Loss = {}".format(loss))
+            print("Loss = {}".format(loss))
         params=[self.logstd]+ self.model.variables
         grads = tape.gradient(loss, params)
         self.optimizer.apply_gradients(zip(grads, params))

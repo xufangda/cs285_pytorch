@@ -32,8 +32,9 @@ class MLPPolicy(BasePolicy):
         self.nn_baseline = nn_baseline
 
         # build TF graph
-        self.build_model()
-        
+        with tf.variable_scope(policy_scope, reuse=tf.AUTO_REUSE):
+            self.build_graph()
+
         # saver for policy variables that are not related to training
         self.policy_vars = [v for v in tf.all_variables() if policy_scope in v.name and 'train' not in v.name]
         self.policy_saver = tf.train.Saver(self.policy_vars, max_to_keep=None)
