@@ -28,7 +28,7 @@ class MLPPolicy(BasePolicy):
 
         # build TF graph
         self.build_model()
-        params= [self.logstd] + self.model.parameters()
+        params=  self.model.parameters() # + [self.logstd]  added by Fangda 2020/8
         self.optimizer=torch.optim.Adam(params, lr=self.learning_rate)
         # saver for policy variables that are not related to training
         # self.policy_vars = [v for v in tf.all_variables() if policy_scope in v.name and 'train' not in v.name]
@@ -50,9 +50,9 @@ class MLPPolicy(BasePolicy):
         return self.model(observation)
 
 
-    def action_sampling(self,observation):
+    def action_sampling(self, observation):
         mean=self.model(observation)
-        self.sample_ac = mean + torch.exp(self.logstd) * torch.normal(0, 1,mean.size())
+        self.sample_ac = mean + torch.exp(self.logstd) * torch.normal(0, 1, mean.size())
         return self.sample_ac
     # # 执行训练操作
     # def define_train_op(self):

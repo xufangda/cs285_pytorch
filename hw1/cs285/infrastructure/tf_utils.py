@@ -9,7 +9,7 @@ import torch.nn as nn
 ############################################
 ############################################
 
-def build_mlp(output_size, n_layers, input_size, hidden_size, output_activation=None):
+def build_mlp(output_size, n_layers, size, output_activation=None):
     """
         Builds a feedforward neural network
 
@@ -27,18 +27,15 @@ def build_mlp(output_size, n_layers, input_size, hidden_size, output_activation=
     """
     
     model_list=[]
-    
-    model_list.append(nn.Linear(input_size,hidden_size))
-    model_list.append(nn.Tanh())
-    
-    for _ in range(n_layers-1):
+        
+    for _ in range(n_layers):
             # HINT: use torch.nn.Linear() + torch.nn.Tanh()
         # model_list.append(tf.keras.layers.Dense(size, activation='tanh'))
-        model_list.append(nn.Linear(hidden_size, hidden_size))
+        model_list.append(nn.Linear(size, size))
         model_list.append(nn.Tanh())
     
-    model_list.append(nn.Linear(hidden_size, output_size))
-    return nn.Sequential(model_list)
+    model_list.append(nn.Linear(size, output_size))
+    return nn.Sequential(*model_list)
 
 
 ############################################
