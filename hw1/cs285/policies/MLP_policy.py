@@ -1,8 +1,7 @@
 import numpy as np
-import tensorflow as tf
+import torch
 from .base_policy import BasePolicy
 from cs285.infrastructure.tf_utils import build_mlp
-import tensorflow_probability as tfp
 
 class MLPPolicy(BasePolicy):
 
@@ -29,7 +28,8 @@ class MLPPolicy(BasePolicy):
 
         # build TF graph
         self.build_model()
-        self.optimizer=tf.keras.optimizers.Adam(self.learning_rate)
+        params= [self.logstd] + self.model.parameters()
+        self.optimizer=torch.optim.Adam(params, lr=self.learning_rate)
         # saver for policy variables that are not related to training
         # self.policy_vars = [v for v in tf.all_variables() if policy_scope in v.name and 'train' not in v.name]
         # self.policy_saver = tf.train.Saver(self.policy_vars, max_to_keep=None)
@@ -42,7 +42,7 @@ class MLPPolicy(BasePolicy):
         # self.define_placeholders()
         model= build_mlp(output_size=self.ac_dim, n_layers=self.n_layers, size=self.size)
         self.model=model
-        self.logstd = tf.Variable(tf.zeros(self.ac_dim), name='logstd')
+        self.logstd = torch.tensor(torch.zeros(self.ac_dim))
         
     ##################################
 
@@ -50,10 +50,9 @@ class MLPPolicy(BasePolicy):
         return self.model(observation)
 
 
-    @tf.function
     def action_sampling(self,observation):
         mean=self.model(observation)
-        self.sample_ac = mean + tf.math.exp(self.logstd) * tf.random.normal(tf.shape(mean), 0, 1)
+        self.sample_ac = mean + torch.exp(self.logstd) * torch.normal(0, 1,mean.size())
         return self.sample_ac
     # # 执行训练操作
     # def define_train_op(self):
@@ -63,9 +62,10 @@ class MLPPolicy(BasePolicy):
 
     # TF1的checkpoint保存和回复
     def save(self, filepath):
-        self.model.save_weights(filepath)
+        torch.save(self.model.state_dict(), filepath)
+    
     def restore(self, filepath):
-        self.model.load_weights(filepath)
+        self.model.load_state_dict(torch.load(filepath))
     ##################################
 
     # 提取
@@ -128,12 +128,11 @@ class MLPPolicySL(MLPPolicy):
         # self.learning_rate=self.learning_rate*0.995
 
         # Add TF2 1/4/2020
-        with tf.GradientTape() as tape:
-            predicted_actions = self.action_sampling(observations) # Forward pass of the model
-            # print(len(actions),len(predicted_actions))
-            loss_n = tf.losses.mean_squared_error(actions[0], predicted_actions[0])
-            loss=tf.reduce_sum(loss_n)
-            print("Loss = {}".format(loss))
-        params=[self.logstd]+ self.model.variables
-        grads = tape.gradient(loss, params)
-        self.optimizer.apply_gradients(zip(grads, params))
+        predicted_actions = self.action_sampling(observations) # Forward pass of the model
+        # print(len(actions),len(predicted_actions))
+        loss_n = torch.nn.functional.mse_loss(actions[0], predicted_actions[0])
+        loss=torch.sum(loss_n)
+        print("Loss = {}".format(loss)) # added by fangda 
+        loss.backward()
+        self.optimizer.step()
+      

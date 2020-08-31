@@ -1,7 +1,7 @@
 import numpy as np
-import tensorflow as tf
+import torch
+
 from .base_policy import BasePolicy
-import tensorflow_probability as tfp
 import pickle
 
 class Loaded_Gaussian_Policy(BasePolicy):
@@ -55,11 +55,11 @@ class Loaded_Gaussian_Policy(BasePolicy):
 
             # bugfix: convert curr_activations_bd Float64 to Float32
             curr_activations_bd= np.float32(curr_activations_bd)
-            curr_activations_bd = self.apply_nonlin(tf.matmul(curr_activations_bd, W) + b)
+            curr_activations_bd = self.apply_nonlin(torch.matmul(curr_activations_bd, W) + b)
 
         # Output layer
         W, b = self.read_layer(self.policy_params['out'])
-        self.output_bo = tf.matmul(curr_activations_bd, W) + b
+        self.output_bo = torch.matmul(curr_activations_bd, W) + b
 
     def read_layer(self, l):
         assert list(l.keys()) == ['AffineLayer']
@@ -68,9 +68,9 @@ class Loaded_Gaussian_Policy(BasePolicy):
 
     def apply_nonlin(self, x):
         if self.nonlin_type == 'lrelu':
-            return tf.nn.leaky_relu(x, alpha=.01)
+            return torch.nn.functional.leaky_relu(x, negative_slope=.01)
         elif self.nonlin_type == 'tanh':
-            return tf.tanh(x)
+            return torch.nn.functional.tanh(x)
         else:
             raise NotImplementedError(self.nonlin_type)
 

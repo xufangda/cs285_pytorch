@@ -2,7 +2,8 @@ import time
 from collections import OrderedDict
 import pickle
 import numpy as np
-import tensorflow as tf
+import torch
+# import tensorflow as tf
 import gym
 import os
 
@@ -25,11 +26,10 @@ class RL_Trainer(object):
         # Get params, create logger, create TF session
         self.params = params
         self.logger = Logger(self.params['logdir'])
-        # self.sess = create_tf_session(self.params['use_gpu'], which_gpu=self.params['which_gpu'])
 
         # Set random seeds
         seed = self.params['seed']
-        tf.random.set_seed(seed)
+        torch.random.manual_seed(seed)
         np.random.seed(seed)
 
         #############

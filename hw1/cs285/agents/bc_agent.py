@@ -1,5 +1,5 @@
 import numpy as np
-import tensorflow as tf
+import torch
 import time
 
 from .base_agent import BaseAgent
