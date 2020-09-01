@@ -47,10 +47,12 @@ class MLPPolicy(BasePolicy):
     ##################################
 
     def forward_pass(self, observation):
+        observation = torch.tensor(observation)
         return self.model(observation)
 
 
     def action_sampling(self, observation):
+        observation = torch.tensor(observation)
         mean=self.model(observation)
         self.sample_ac = mean + torch.exp(self.logstd) * torch.normal(0, 1, mean.size())
         return self.sample_ac
