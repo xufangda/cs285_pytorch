@@ -30,7 +30,7 @@ class Logger:
 
         # reshape the rollouts
         videos = [np.transpose(p['image_obs'], [0, 3, 1, 2]) for p in paths] #0312
-        videos = np.flip(videos, 3)
+        # videos = np.flip(videos, 3)
         # max rollout length
         max_videos_to_save = np.min([max_videos_to_save, len(videos)])
         max_length = videos[0].shape[0]

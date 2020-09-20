@@ -3,12 +3,10 @@ from collections import OrderedDict
 import pickle
 import numpy as np
 import torch
-# import tensorflow as tf
 import gym
 import os
 
 from cs285.infrastructure.utils import *
-# from cs285.infrastructure.tf_utils import create_tf_session
 from cs285.infrastructure.logger import Logger
 
 # params for saving rollout videos to tensorboard

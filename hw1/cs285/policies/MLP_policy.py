@@ -1,79 +1,89 @@
 import numpy as np
 import torch
+import torch.nn as nn
 from .base_policy import BasePolicy
-from cs285.infrastructure.tf_utils import build_mlp
 
-class MLPPolicy(BasePolicy):
+class MLPPolicy(nn.Module):
 
     def __init__(self,
-        ac_dim,
-        ob_dim,
-        n_layers,
-        size,
+        ac_dim, # output size
+        ob_dim, # input size
+        n_layers, 
+        size, # hidden size
+        device,
         learning_rate=1e-4,
         training=True,
-        policy_scope='policy_vars',
         discrete=False, # unused for now
         nn_baseline=False, # unused for now
         **kwargs):
         super().__init__(**kwargs)
 
         # init vars
-        self.ac_dim = ac_dim
-        self.ob_dim = ob_dim
-        self.n_layers = n_layers
-        self.size = size
-        self.learning_rate = learning_rate
+        
         self.training = training
+        self.device = device
 
-        # build TF graph
-        self.build_model()
-        params=  self.model.parameters() # + [self.logstd]  added by Fangda 2020/8
-        self.optimizer=torch.optim.Adam(params, lr=self.learning_rate)
-        # saver for policy variables that are not related to training
-        # self.policy_vars = [v for v in tf.all_variables() if policy_scope in v.name and 'train' not in v.name]
-        # self.policy_saver = tf.train.Saver(self.policy_vars, max_to_keep=None)
+        self.logstd = nn.Parameter(torch.Tensor([0])) # gaussian standard deviation
+        # network architecture
+        # TODO -build the network here
+        # HINT -build an nn.Modulelist() using the passed the parameters
+        self.module_list=nn.ModuleList()
+
+        self.module_list.append(nn.Linear(ob_dim, size))
+        self.module_list.append(nn.Tanh())
+
+        for _ in range(n_layers - 1):
+            # HINT: use torch.nn.Linear() + torch.nn.Tanh()
+            self.module_list.append(nn.Linear(size, size))
+            self.module_list.append(nn.Tanh())
+        
+        self.module_list.append(nn.Linear(size, ac_dim))
+        
+        if self.training:
+            self.loss_func = nn.MSELoss
+            self.optimizer = torch.optim.Adam(self.parameters(), learning_rate)
 
     ##################################
     
-    # TF1建图，没什么用 2020.1.5
-    # Change to TF2 Build model 2020.1.6 @Fangda
-    def build_model(self):
-        # self.define_placeholders()
-        model= build_mlp(output_size=self.ac_dim, n_layers=self.n_layers, size=self.size)
-        self.model=model
-        self.logstd = torch.tensor(torch.zeros(self.ac_dim))
+    # # TF1建图，没什么用 2020.1.5
+    # # Change to TF2 Build model 2020.1.6 @Fangda
+    # def build_model(self):
+    #     # self.define_placeholders()
+    #     model= build_mlp(output_size=self.ac_dim, n_layers=self.n_layers, input_size=self.ob_dim, hidden_size=self.size)
+    #     self.model=model
+    #     self.logstd = torch.tensor(torch.zeros(self.ac_dim))
         
     ##################################
 
-    def forward_pass(self, observation):
-        observation = torch.tensor(observation)
-        return self.model(observation)
+    def forward(self, x):
+        for layer in self.module_list:
+            x = layer(x)
+        return x
 
-
-    def action_sampling(self, observation):
-        observation = torch.tensor(observation)
-        mean=self.model(observation)
-        self.sample_ac = mean + torch.exp(self.logstd) * torch.normal(0, 1, mean.size())
-        return self.sample_ac
-    # # 执行训练操作
-    # def define_train_op(self):
-    #     raise NotImplementedError
 
     ##################################
 
-    # TF1的checkpoint保存和回复
     def save(self, filepath):
         torch.save(self.model.state_dict(), filepath)
-    
+        
     def restore(self, filepath):
         self.model.load_state_dict(torch.load(filepath))
+
     ##################################
 
     # 提取
 
+    # def action_sampling(self, observation):
+    #     observation = torch.tensor(observation)
+    #     mean=self.model(observation)
+    #     self.sample_ac = mean + torch.exp(self.logstd) * torch.normal(0, 1, mean.size())
+    #     return self.sample_ac
+    # # 执行训练操作
+    # def define_train_op(self):
+    #     raise NotImplementedError
+
     # query this policy with observation(s) to get selected action(s)
-    def get_action(self, obs):
+    def __get_action(self, obs):
 
         if len(obs.shape)>1:
             observation = obs
@@ -81,12 +91,13 @@ class MLPPolicy(BasePolicy):
             observation = obs[None]
 
         # TODO return the action that the policy prescribes
-        # HINT1: you will need to call self.sess.run
-        # HINT2: the tensor we're interested in evaluating is self.sample_ac
-        # HINT3: in order to run self.sample_ac, it will need observation fed into the feed_dict
-        sample_ac=self.action_sampling(observation)
+        mean = self(torch.Tensor(observation).to(self.device))
+        action = mean + torch.exp(self.logstd) * torch.normal(0, 1, mean.size())
 
-        return sample_ac
+        return action
+
+    def get_action(self, obs):
+        return self.__get_action(obs).cpu().detach().numpy()
 
     # update/train this policy
     def update(self, observations, actions):
@@ -129,12 +140,9 @@ class MLPPolicySL(MLPPolicy):
         # Bugfix: convergence is too slow with 1000 step, this is a test remedy that works so well.
         # self.learning_rate=self.learning_rate*0.995
 
-        # Add TF2 1/4/2020
-        predicted_actions = self.action_sampling(observations) # Forward pass of the model
-        # print(len(actions),len(predicted_actions))
-        loss_n = torch.nn.functional.mse_loss(actions[0], predicted_actions[0])
-        loss=torch.sum(loss_n)
-        print("Loss = {}".format(loss)) # added by fangda 
+        self.optimizer.zero_grad()
+        predicted_actions = self.__get_action(observations)
+        loss = self.loss_func(predicted_actions, torch.Tensor(actions).to(self.device), reduction='sum')
         loss.backward()
-        self.optimizer.step()
-      
+        print("Loss = {}".format(loss)) # added by fangda 
+        self.optimizer.step()      

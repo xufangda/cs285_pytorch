@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/home/xfd/miniconda3/envs/cs285/bin/python",
+    "python.pythonPath": "/home/xfd/miniconda3/envs/torch/bin/python",
     "sourcetrail.sourcetrailPort":6667,
     "sourcetrail.pluginPort": 6666,
     "sourcetrail.ip": "localhost",

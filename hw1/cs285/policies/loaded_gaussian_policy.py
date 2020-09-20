@@ -1,13 +1,13 @@
 import numpy as np
 import torch
+import torch.nn as nn
 
 from .base_policy import BasePolicy
 import pickle
 
-class Loaded_Gaussian_Policy(BasePolicy):
+class Loaded_Gaussian_Policy(nn.Module):
     def __init__(self, filename, **kwargs):
         super().__init__(**kwargs)
-
 
         with open(filename, 'rb') as f:
             data = pickle.loads(f.read())
@@ -19,60 +19,61 @@ class Loaded_Gaussian_Policy(BasePolicy):
         self.policy_params = data[policy_type]
 
         assert set(self.policy_params.keys()) == {'logstdevs_1_Da', 'hidden', 'obsnorm', 'out'}
-
-        self.build_model()
-
-    ##################################
-
-    def build_model(self):
-        self.define_placeholders()
-        # self.define_forward_pass()
-
-    ##################################
-
-    def define_placeholders(self):
-        self.obs_bo = None
-
-    def forward_pass(self):
-
-        # Build the policy. First, observation normalization.
-        assert list(self.policy_params['obsnorm'].keys()) == ['Standardizer']
-        obsnorm_mean = self.policy_params['obsnorm']['Standardizer']['mean_1_D']
-        obsnorm_meansq = self.policy_params['obsnorm']['Standardizer']['meansq_1_D']
-        obsnorm_stdev = np.sqrt(np.maximum(0, obsnorm_meansq - np.square(obsnorm_mean)))
-        print('obs', obsnorm_mean.shape, obsnorm_stdev.shape)
-
-        normedobs_bo = (self.obs_bo - obsnorm_mean) / (obsnorm_stdev + 1e-6)
-        curr_activations_bd = normedobs_bo
-
-        # Hidden layers next
-        assert list(self.policy_params['hidden'].keys()) == ['FeedforwardNet']
-        layer_params = self.policy_params['hidden']['FeedforwardNet']
         
+        assert list(self.policy_params['obsnorm'].keys()) == ['Standardizer']
+        self.obsnorm_mean = self.policy_params['obsnorm']['Standardizer']['mean_1_D']
+        self.obsnorm_meansq = self.policy_params['obsnorm']['Standardizer']['meansq_1_D']
+        layer_params = self.policy_params['hidden']['FeedforwardNet']
+
+        
+        self.mlp = nn.ModuleList()
         for layer_name in sorted(layer_params.keys()):
-            l = layer_params[layer_name]
-            W, b = self.read_layer(l)
+            W = layer_params[layer_name]['AffineLayer']['W'].astype(np.float32)
+            b = layer_params[layer_name]['AffineLayer']['b'].astype(np.float32)
+            size_in, size_out = W.shape
+            
+            layer = nn.Linear(size_in,size_out)
+            layer.weight.data.copy_(torch.from_numpy(W.transpose()))
+            layer.bias.data.copy_(torch.from_numpy(b.sqeeze(0)))
+            self.mlp.append(layer)
+        
+            if self.nonlin_type == 'lrelu':
+                self.mlp.append(nn.LeakyReLU())
+            elif self.nonlin_type == 'tanh':
+                self.mlp.append(nn.Tanh())
+            else:
+                raise NotImplementedError(self.nonlin_type)
 
-            # bugfix: convert curr_activations_bd Float64 to Float32
-            curr_activations_bd= np.float32(curr_activations_bd)
-            curr_activations_bd = self.apply_nonlin(torch.matmul(curr_activations_bd, W) + b)
+        W = self.policy_params['out']['AffineLayer']['W'].astype(np.float32)
+        b = self.policy_params['out']['AffineLayer']['b'].astype(np.float32)
+        size_in, size_out = W.shape
+            
+        layer = nn.Linear(size_in,size_out)
+        layer.weight.data.copy_(torch.from_numpy(W.transpose()))
+        layer.bias.data.copy_(torch.from_numpy(b.sqeeze(0)))
 
-        # Output layer
-        W, b = self.read_layer(self.policy_params['out'])
-        self.output_bo = torch.matmul(curr_activations_bd, W) + b
+        self.mlp.append(layer)
 
-    def read_layer(self, l):
-        assert list(l.keys()) == ['AffineLayer']
-        assert sorted(l['AffineLayer'].keys()) == ['W', 'b']
-        return l['AffineLayer']['W'].astype(np.float32), l['AffineLayer']['b'].astype(np.float32)
+    
+    ##################################
+    
+    # ##################################
 
-    def apply_nonlin(self, x):
-        if self.nonlin_type == 'lrelu':
-            return torch.nn.functional.leaky_relu(x, negative_slope=.01)
-        elif self.nonlin_type == 'tanh':
-            return torch.nn.functional.tanh(x)
-        else:
-            raise NotImplementedError(self.nonlin_type)
+    def obs_norm(self, x, obsnorm_mean, obsnorm_meansq):
+        '''
+        batch norm
+        '''
+        obsnorm_stdev = np.sqrt(np.maximum(0, obsnorm_meansq - np.square(obsnorm_mean)))
+        normedobs_bo = (x - obsnorm_mean) / (obsnorm_stdev + 1e-6)
+        pass
+    
+    ##################################
+
+    def forward(self, x):
+        x = self.obs_norm(x, self.obsnorm_mean, self.obsnorm_meansq)
+        for layer in self.mlp:
+            x = layer(x)
+        return x
 
     ##################################
 
@@ -82,16 +83,12 @@ class Loaded_Gaussian_Policy(BasePolicy):
         raise NotImplementedError
 
     def get_action(self, obs):
-        if len(obs.shape)>1:
-            observation = obs
-        else:
-            observation = obs[None, :]
-        
-        self.obs_bo=observation
-        self.forward_pass()
-        
-        # return self.sess.run(self.output_bo, feed_dict={self.obs_bo : observation})
-        return self.output_bo
+        # if len(obs.shape)>1:
+        #     observation = obs
+        # else:
+        #     observation = obs[None, :]
+    
+        return self(obs)
 
         
 
