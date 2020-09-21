@@ -34,7 +34,7 @@ class Loaded_Gaussian_Policy(nn.Module):
             
             layer = nn.Linear(size_in,size_out)
             layer.weight.data.copy_(torch.from_numpy(W.transpose()))
-            layer.bias.data.copy_(torch.from_numpy(b.sqeeze(0)))
+            layer.bias.data.copy_(torch.from_numpy(b).squeeze(0))
             self.mlp.append(layer)
         
             if self.nonlin_type == 'lrelu':
@@ -50,7 +50,7 @@ class Loaded_Gaussian_Policy(nn.Module):
             
         layer = nn.Linear(size_in,size_out)
         layer.weight.data.copy_(torch.from_numpy(W.transpose()))
-        layer.bias.data.copy_(torch.from_numpy(b.sqeeze(0)))
+        layer.bias.data.copy_(torch.from_numpy(b).squeeze(0))
 
         self.mlp.append(layer)
 
@@ -65,7 +65,7 @@ class Loaded_Gaussian_Policy(nn.Module):
         '''
         obsnorm_stdev = np.sqrt(np.maximum(0, obsnorm_meansq - np.square(obsnorm_mean)))
         normedobs_bo = (x - obsnorm_mean) / (obsnorm_stdev + 1e-6)
-        pass
+        return torch.FloatTensor(normedobs_bo).squeeze(0)
     
     ##################################
 
@@ -88,7 +88,7 @@ class Loaded_Gaussian_Policy(nn.Module):
         # else:
         #     observation = obs[None, :]
     
-        return self(obs)
+        return self(obs).cpu().detach().numpy()
 
         
 

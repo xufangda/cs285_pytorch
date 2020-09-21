@@ -15,12 +15,14 @@ class BCAgent(BaseAgent):
         self.env = env
         self.agent_params = agent_params
 
+        self.device = torch.device("cpu") # added by fangda @ 2020/9/20
         # actor/policy
         self.actor = MLPPolicySL(
                                self.agent_params['ac_dim'],
                                self.agent_params['ob_dim'],
                                self.agent_params['n_layers'],
                                self.agent_params['size'],
+                               self.device, #Add by Fangda 2020/9/20
                                discrete = self.agent_params['discrete'],
                                learning_rate = self.agent_params['learning_rate'],
                                ) ## TODO: look in here and implement this

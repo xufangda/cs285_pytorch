@@ -40,19 +40,11 @@ class MLPPolicy(nn.Module):
         self.module_list.append(nn.Linear(size, ac_dim))
         
         if self.training:
-            self.loss_func = nn.MSELoss
+            self.loss_func = nn.MSELoss(reduction='sum')
             self.optimizer = torch.optim.Adam(self.parameters(), learning_rate)
 
-    ##################################
-    
-    # # TF1建图，没什么用 2020.1.5
-    # # Change to TF2 Build model 2020.1.6 @Fangda
-    # def build_model(self):
-    #     # self.define_placeholders()
-    #     model= build_mlp(output_size=self.ac_dim, n_layers=self.n_layers, input_size=self.ob_dim, hidden_size=self.size)
-    #     self.model=model
-    #     self.logstd = torch.tensor(torch.zeros(self.ac_dim))
-        
+        self.to(device)
+
     ##################################
 
     def forward(self, x):
@@ -64,7 +56,7 @@ class MLPPolicy(nn.Module):
     ##################################
 
     def save(self, filepath):
-        torch.save(self.model.state_dict(), filepath)
+        torch.save(self.state_dict(), filepath)
         
     def restore(self, filepath):
         self.model.load_state_dict(torch.load(filepath))
@@ -83,7 +75,7 @@ class MLPPolicy(nn.Module):
     #     raise NotImplementedError
 
     # query this policy with observation(s) to get selected action(s)
-    def __get_action(self, obs):
+    def _get_action(self, obs):
 
         if len(obs.shape)>1:
             observation = obs
@@ -97,7 +89,7 @@ class MLPPolicy(nn.Module):
         return action
 
     def get_action(self, obs):
-        return self.__get_action(obs).cpu().detach().numpy()
+        return self._get_action(obs).cpu().detach().numpy()
 
     # update/train this policy
     def update(self, observations, actions):
@@ -141,8 +133,8 @@ class MLPPolicySL(MLPPolicy):
         # self.learning_rate=self.learning_rate*0.995
 
         self.optimizer.zero_grad()
-        predicted_actions = self.__get_action(observations)
-        loss = self.loss_func(predicted_actions, torch.Tensor(actions).to(self.device), reduction='sum')
+        predicted_actions = self._get_action(observations)
+        loss = self.loss_func(predicted_actions, torch.Tensor(actions).to(self.device))
         loss.backward()
         print("Loss = {}".format(loss)) # added by fangda 
         self.optimizer.step()      
