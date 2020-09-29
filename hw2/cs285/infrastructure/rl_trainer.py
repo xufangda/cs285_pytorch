@@ -3,12 +3,11 @@ import time
 from collections import OrderedDict
 import pickle
 import numpy as np
-import tensorflow as tf
+import torch
 import gym
 import os
 
 from cs285.infrastructure.utils import *
-# from cs285.infrastructure.tf_utils import create_tf_session
 from cs285.infrastructure.logger import Logger
 
 # how many rollouts to save as videos to tensorboard
@@ -29,7 +28,7 @@ class RL_Trainer(object):
 
         # Set random seeds
         seed = self.params['seed']
-        tf.set_random_seed(seed)
+        torch.random.manual_seed(seed)
         np.random.seed(seed)
 
         #############
@@ -71,8 +70,7 @@ class RL_Trainer(object):
         ## INIT VARS
         #############
 
-        # tf.global_variables_initializer().run(session=self.sess)
-
+        
     def run_training_loop(self, n_iter, collect_policy, eval_policy,
                         initial_expertdata=None, relabel_with_expert=False,
                         start_relabel_with_expert=1, expert_policy=None):
