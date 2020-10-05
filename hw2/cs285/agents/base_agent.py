@@ -1,5 +1,5 @@
 import numpy as np
-import tensorflow as tf
+import torch
 
 class BaseAgent(object):
     def __init__(self, **kwargs):

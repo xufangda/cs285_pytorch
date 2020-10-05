@@ -13,7 +13,7 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
     # init vars
     obs, acs, rewards, next_obs, terminals, image_obs = [], [], [], [], [], []
     steps = 0
-    while True:
+    while True: 
 
         # render image of the simulated env
         if render:
