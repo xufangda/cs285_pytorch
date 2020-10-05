@@ -1,18 +1,20 @@
 import numpy as np
+import torch
+import torch.nn as nn
 
-class BasePolicy(object):
+class BasePolicy(nn.Module):
 
     def __init__(self, **kwargs):
        super(BasePolicy, self).__init__(**kwargs)
 
-    def build_model(self):
+    def forward(self, x):
         raise NotImplementedError
 
-    def get_action(self, obs):
-        raise NotImplementedError
+    # def get_action(self, obs):
+    #     raise NotImplementedError
 
-    def update(self, obs, acs):
-        raise NotImplementedError
+    # def update(self, obs, acs):
+    #     raise NotImplementedError
 
     def save(self, filepath):
     	raise NotImplementedError

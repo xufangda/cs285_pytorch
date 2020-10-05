@@ -85,12 +85,14 @@ See the code + the hw pdf for more details.
 Run the following command for Section 1 (Behavior Cloning):
 
 $ python cs285/scripts/run_hw1_behavior_cloning.py --expert_policy_file cs285/policies/experts/Ant.pkl --env_name Ant-v2 --exp_name test_bc_ant --n_iter 1 --expert_data cs285/expert_data/expert_data_Ant-v2.pkl
+python cs285/scripts/run_hw1_behavior_cloning.py --expert_policy_file cs285/policies/experts/Walker2d.pkl --env_name Walker2d-v2 --exp_name test_bc_walker2d --n_iter 1 --expert_data cs285/expert_data/expert_data_Walker2d-v2.pkl
 
 Run the following command for Section 2 (DAGGER):
 (NOTE: the --do_dagger flag, and the higher value for n_iter)
 
 $ python cs285/scripts/run_hw1_behavior_cloning.py --expert_policy_file cs285/policies/experts/Ant.pkl --env_name Ant-v2 --exp_name test_dagger_ant --n_iter 10 --do_dagger --expert_data cs285/expert_data/expert_data_Ant-v2.pkl
-
+python cs285/scripts/run_hw1_behavior_cloning.py --expert_policy_file cs285/policies/experts/Humanoid.pkl --env_name Humanoid-v2 --exp_name test_dagger_humanoid --n_iter 10 --do_dagger --expert_data cs285/expert_data/expert_data_Humanoid-v2.pkl
+python cs285/scripts/run_hw1_behavior_cloning.py --expert_policy_file cs285/policies/experts/Walker2d.pkl --env_name Walker2d-v2 --exp_name test_dagger_walker2d --n_iter 10 --do_dagger --expert_data cs285/expert_data/expert_data_Walker2d-v2.pkl
 ##############################################
 
 6) visualize saved tensorboard event file:

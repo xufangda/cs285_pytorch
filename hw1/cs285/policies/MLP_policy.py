@@ -63,16 +63,6 @@ class MLPPolicy(nn.Module):
 
     ##################################
 
-    # 提取
-
-    # def action_sampling(self, observation):
-    #     observation = torch.tensor(observation)
-    #     mean=self.model(observation)
-    #     self.sample_ac = mean + torch.exp(self.logstd) * torch.normal(0, 1, mean.size())
-    #     return self.sample_ac
-    # # 执行训练操作
-    # def define_train_op(self):
-    #     raise NotImplementedError
 
     # query this policy with observation(s) to get selected action(s)
     def _get_action(self, obs):
@@ -104,27 +94,7 @@ class MLPPolicySL(MLPPolicy):
         This class is a special case of MLPPolicy,
         which is trained using supervised learning.
         The relevant functions to define are included below.
-    """
-
-    # def define_placeholders(self):
-    #     # placeholder for observations
-    #     self.observations_pl = tf.placeholder(shape=[None, self.ob_dim], name="ob", dtype=tf.float32)
-
-    #     # placeholder for actions
-    #     self.actions_pl = tf.placeholder(shape=[None, self.ac_dim], name="ac", dtype=tf.float32)
-
-    #     if self.training:
-    #         self.acs_labels_na = tf.placeholder(shape=[None, self.ac_dim], name="labels", dtype=tf.float32)
-
-    # def define_train_op(self):
-    #     true_actions = self.acs_labels_na
-    #     predicted_actions = self.sample_ac
-
-    #     # TODO define the loss that will be used to train this policy
-    #     # HINT1: remember that we are doing supervised learning
-    #     # HINT2: use tf.losses.mean_squared_error
-    #     self.loss = tf.losses.mean_squared_error(true_actions, predicted_actions)
-        
+    """        
 
     def update(self, observations, actions):
         assert(self.training, 'Policy must be created with training=True in order to perform training updates...')

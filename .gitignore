@@ -2,3 +2,5 @@
 cs285.egg-info/
 __pycache__/
 data/
+.git/
+.vscode/

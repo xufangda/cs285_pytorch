@@ -1,7 +1,0 @@
-{
-    "python.pythonPath": "C:\\ProgramData\\Anaconda3\\envs\\py38_torch16\\python.exe",
-    "sourcetrail.sourcetrailPort":6667,
-    "sourcetrail.pluginPort": 6666,
-    "sourcetrail.ip": "localhost",
-    "sourcetrail.startServerAtStartup": true
-}
